@@ -50,7 +50,7 @@ describe('createDelta', () => {
 describe('encodeDelta', () => {
   it('should encode delta to hash fragment', async () => {
     const delta = await createDelta('game-123', 0, 'X', 1, 1, 'prev1', 'new1');
-    const hashFragment = encodeDelta(delta, 2);
+    const hashFragment = encodeDelta(delta, "player2-id");
 
     expect(hashFragment).toMatch(/^#d=/);
     expect(hashFragment.length).toBeLessThan(2000);
@@ -58,7 +58,7 @@ describe('encodeDelta', () => {
 
   it('should encode delta with targetPlayer=1', async () => {
     const delta = await createDelta('game-123', 4, 'O', 2, 2, 'prev1', 'new1');
-    const hash = encodeDelta(delta, 1);
+    const hash = encodeDelta(delta, "player1-id");
 
     expect(hash).toMatch(/^#d=.+$/);
     expect(hash).not.toContain('&p='); // No visible player parameter
@@ -67,7 +67,7 @@ describe('encodeDelta', () => {
 
   it('should encode delta with targetPlayer=2', async () => {
     const delta = await createDelta('game-123', 8, 'X', 1, 3, 'prev1', 'new1');
-    const hash = encodeDelta(delta, 2);
+    const hash = encodeDelta(delta, "player2-id");
 
     expect(hash).toMatch(/^#d=.+$/);
     expect(hash).not.toContain('&p=');
@@ -78,9 +78,9 @@ describe('encodeDelta', () => {
 describe('decodeDelta', () => {
   it('should decode delta from hash fragment', async () => {
     const delta = await createDelta('game-123', 4, 'X', 1, 1, 'prev1', 'new1');
-    const hashFragment = encodeDelta(delta, 2);
+    const hashFragment = encodeDelta(delta, "player2-id");
 
-    const { delta: decoded, targetPlayer } = decodeDelta(hashFragment);
+    const { delta: decoded, targetPlayerId } = decodeDelta(hashFragment);
 
     expect(decoded.gameId).toBe('game-123');
     expect(decoded.move.cellIndex).toBe(4);
@@ -90,37 +90,37 @@ describe('decodeDelta', () => {
     expect(decoded.prevChecksum).toBe('prev1');
     expect(decoded.newChecksum).toBe('new1');
     expect(decoded.hmac).toBe(delta.hmac);
-    expect(targetPlayer).toBe(2);
+    expect(targetPlayerId).toBe("player2-id");
   });
 
   it('should round-trip encode/decode delta', async () => {
     const originalDelta = await createDelta('game-456', 3, 'O', 2, 5, 'checksumA', 'checksumB');
-    const encoded = encodeDelta(originalDelta, 1);
-    const { delta: decoded, targetPlayer } = decodeDelta(encoded);
+    const encoded = encodeDelta(originalDelta, "player1-id");
+    const { delta: decoded, targetPlayerId } = decodeDelta(encoded);
 
     expect(decoded).toEqual(originalDelta);
-    expect(targetPlayer).toBe(1);
+    expect(targetPlayerId).toBe("player1-id");
   });
 
   it('should decode delta and extract targetPlayer=1', async () => {
     const delta = await createDelta('game-123', 7, 'X', 1, 4, 'prev1', 'new1');
-    const hash = encodeDelta(delta, 1);
-    const { delta: decoded, targetPlayer } = decodeDelta(hash);
+    const hash = encodeDelta(delta, "player1-id");
+    const { delta: decoded, targetPlayerId } = decodeDelta(hash);
 
     expect(decoded).toEqual(delta);
-    expect(targetPlayer).toBe(1);
+    expect(targetPlayerId).toBe("player1-id");
   });
 
   it('should decode delta and extract targetPlayer=2', async () => {
     const delta = await createDelta('game-123', 2, 'O', 2, 3, 'prev1', 'new1');
-    const hash = encodeDelta(delta, 2);
-    const { delta: decoded, targetPlayer } = decodeDelta(hash);
+    const hash = encodeDelta(delta, "player2-id");
+    const { delta: decoded, targetPlayerId } = decodeDelta(hash);
 
     expect(decoded).toEqual(delta);
-    expect(targetPlayer).toBe(2);
+    expect(targetPlayerId).toBe("player2-id");
   });
 
-  it('should handle backward compatibility for old delta URLs', async () => {
+  it('should reject old delta URL format', async () => {
     const delta = await createDelta('game-123', 5, 'X', 1, 2, 'prev1', 'new1');
 
     // Manually create old-format delta URL (no targetPlayer wrapper)
@@ -129,11 +129,8 @@ describe('decodeDelta', () => {
     const compressed = LZString.compressToEncodedURIComponent(oldFormatJson);
     const oldHash = `#d=${compressed}`;
 
-    const { delta: decoded, targetPlayer } = decodeDelta(oldHash);
-
-    expect(decoded).toEqual(delta);
-    // Should infer targetPlayer from delta.move.player (opponent)
-    expect(targetPlayer).toBe(2); // Move was by player 1, so URL is for player 2
+    // Old format should throw error
+    expect(() => decodeDelta(oldHash)).toThrow('Old URL format not supported');
   });
 });
 

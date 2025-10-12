@@ -22,13 +22,21 @@ export const GameStatusSchema = z.enum([
 ]);
 export type GameStatus = z.infer<typeof GameStatusSchema>;
 
+// Player identity with persistent ID and name
+// Note: id can be empty string until player joins (Player 2 case)
+export const PlayerSchema = z.object({
+  id: z.string(), // UUID or empty string (for Player 2 before joining)
+  name: z.string(),
+});
+export type Player = z.infer<typeof PlayerSchema>;
+
 export const TicTacToeGameStateSchema = z.object({
   gameId: z.string().uuid(),
   board: BoardSchema,
   currentTurn: z.number().int().min(0).max(9), // 0 = game start, 9 = board full
-  currentPlayer: z.union([z.literal(1), z.literal(2)]),
-  player1Name: z.string(),
-  player2Name: z.string(), // Empty string until Player 2 joins
+  currentPlayer: z.union([z.literal(1), z.literal(2)]), // Role (X/O position)
+  player1: PlayerSchema, // WHO is playing role 1 (X)
+  player2: PlayerSchema, // WHO is playing role 2 (O) - may have empty name until joins
   status: GameStatusSchema,
   checksum: z.string().length(64), // SHA-256 hex
 });
@@ -43,15 +51,28 @@ export function createEmptyBoard(): Board {
 
 /**
  * Create new game state with empty board
+ * @param gameId - Unique game identifier
+ * @param player1Id - Player 1's persistent ID
+ * @param player1Name - Player 1's name
  */
-export function createNewTicTacToeGame(gameId: string): TicTacToeGameState {
+export function createNewTicTacToeGame(
+  gameId: string,
+  player1Id: string,
+  player1Name: string
+): TicTacToeGameState {
   return {
     gameId,
     board: createEmptyBoard(),
     currentTurn: 0,
     currentPlayer: 1,
-    player1Name: '',
-    player2Name: '',
+    player1: {
+      id: player1Id,
+      name: player1Name,
+    },
+    player2: {
+      id: '', // Empty until Player 2 joins
+      name: '',
+    },
     status: 'playing',
     checksum: '', // Will be calculated after creation
   };

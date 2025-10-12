@@ -61,35 +61,35 @@ export async function createDelta(
 }
 
 /**
- * Payload structure for delta encoding with embedded target player.
+ * Payload structure for delta encoding with embedded target player ID.
  */
 interface DeltaPayload {
   delta: TicTacToeDelta;
-  targetPlayer: 1 | 2;
+  targetPlayerId: string;  // WHO this URL is for (by player ID)
 }
 
 /**
- * Encodes delta into URL hash fragment with embedded target player indicator.
- * The player number is hidden inside the compressed payload.
+ * Encodes delta into URL hash fragment with embedded target player ID.
+ * The player ID is hidden inside the compressed payload.
  *
  * @param delta - The delta to encode
- * @param targetPlayer - Which player this URL is intended for (1 or 2)
- * @returns Hash fragment like "#d=<compressed-payload>" (player embedded, not visible)
+ * @param targetPlayerId - Which player this URL is intended for (by player ID)
+ * @returns Hash fragment like "#d=<compressed-payload>" (player ID embedded, not visible)
  */
-export function encodeDelta(delta: TicTacToeDelta, targetPlayer: 1 | 2): string {
-  const payload: DeltaPayload = { delta, targetPlayer };
+export function encodeDelta(delta: TicTacToeDelta, targetPlayerId: string): string {
+  const payload: DeltaPayload = { delta, targetPlayerId };
   const json = JSON.stringify(payload);
   const compressed = LZString.compressToEncodedURIComponent(json);
   return `#d=${compressed}`;
 }
 
 /**
- * Decodes delta from URL hash fragment, extracting embedded target player.
+ * Decodes delta from URL hash fragment, extracting embedded target player ID.
  *
  * @param hashFragment - Hash like "#d=<compressed-payload>"
- * @returns Object with delta and targetPlayer (extracted from payload)
+ * @returns Object with delta and targetPlayerId (extracted from payload)
  */
-export function decodeDelta(hashFragment: string): { delta: TicTacToeDelta; targetPlayer: 1 | 2 } {
+export function decodeDelta(hashFragment: string): { delta: TicTacToeDelta; targetPlayerId: string } {
   const compressed = hashFragment.substring(3); // Remove '#d='
   const json = LZString.decompressFromEncodedURIComponent(compressed);
 
@@ -99,21 +99,26 @@ export function decodeDelta(hashFragment: string): { delta: TicTacToeDelta; targ
 
   const payload = JSON.parse(json);
 
-  // Handle backward compatibility: old URLs without targetPlayer
-  if (payload.targetPlayer === undefined) {
-    // Old format: payload is the delta itself
-    const delta = payload as TicTacToeDelta;
-    // Infer target player from delta.move.player (opponent of player who made move)
-    const targetPlayer = delta.move.player === 1 ? 2 : 1;
-    return { delta, targetPlayer };
+  // Handle backward compatibility: old URLs without targetPlayerId
+  if (payload.targetPlayerId === undefined) {
+    // Check for old targetPlayer format (number)
+    if (payload.targetPlayer !== undefined) {
+      // Old format with targetPlayer number - but we need player ID
+      // Can't fully convert without game state, so throw error
+      throw new Error('Old URL format not supported - please generate new URL');
+    }
+
+    // Very old format: payload is the delta itself
+    // Can't determine target player ID without game state
+    throw new Error('Old URL format not supported - please generate new URL');
   }
 
-  // New format: payload has delta and targetPlayer
-  if (payload.targetPlayer !== 1 && payload.targetPlayer !== 2) {
-    throw new Error('Invalid target player in URL payload');
+  // New format: payload has delta and targetPlayerId
+  if (!payload.targetPlayerId || typeof payload.targetPlayerId !== 'string') {
+    throw new Error('Invalid target player ID in URL payload');
   }
 
-  return { delta: payload.delta, targetPlayer: payload.targetPlayer };
+  return { delta: payload.delta, targetPlayerId: payload.targetPlayerId };
 }
 
 export async function applyDelta(

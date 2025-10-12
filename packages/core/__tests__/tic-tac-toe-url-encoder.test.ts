@@ -4,18 +4,20 @@ import type { TicTacToeGameState, Board } from '../src/lib/tic-tac-toe-schema';
 
 describe('encodeFullState', () => {
   it('should encode game state to hash fragment', () => {
+    const player1Id = crypto.randomUUID();
+    const player2Id = crypto.randomUUID();
     const state: TicTacToeGameState = {
       gameId: crypto.randomUUID(),
       board: ['X', null, null, null, null, null, null, null, null] as Board,
       currentTurn: 1,
       currentPlayer: 2,
-      player1Name: 'Alice',
-      player2Name: '',
+      player1: { id: player1Id, name: 'Alice' },
+      player2: { id: player2Id, name: '' },
       status: 'playing',
       checksum: 'a'.repeat(64),
     };
 
-    const hashFragment = encodeFullState(state, 2);
+    const hashFragment = encodeFullState(state, player2Id);
 
     expect(hashFragment).toMatch(/^#s=/);
     expect(hashFragment.length).toBeLessThan(2000);
@@ -27,13 +29,13 @@ describe('encodeFullState', () => {
       board: Array(9).fill(null) as Board,
       currentTurn: 0,
       currentPlayer: 1,
-      player1Name: 'Alice',
-      player2Name: '',
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: '' },
       status: 'playing',
       checksum: 'b'.repeat(64),
     };
 
-    const hash = encodeFullState(state, 1);
+    const hash = encodeFullState(state, state.player1.id);
 
     expect(hash).toMatch(/^#s=.+$/);
     expect(hash).not.toContain('&p='); // No visible player parameter
@@ -46,13 +48,13 @@ describe('encodeFullState', () => {
       board: ['X', 'O', null, null, 'X', null, null, null, null] as Board,
       currentTurn: 3,
       currentPlayer: 2,
-      player1Name: 'Alice',
-      player2Name: 'Bob',
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: 'Bob' },
       status: 'playing',
       checksum: 'c'.repeat(64),
     };
 
-    const hash = encodeFullState(state, 2);
+    const hash = encodeFullState(state, state.player2.id);
 
     expect(hash).toMatch(/^#s=.+$/);
     expect(hash).not.toContain('&p=');
@@ -65,13 +67,13 @@ describe('encodeFullState', () => {
       board: ['X', 'X', 'O', 'O', 'X', null, null, null, null] as Board,
       currentTurn: 5,
       currentPlayer: 1,
-      player1Name: 'Alice',
-      player2Name: 'Bob',
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: 'Bob' },
       status: 'playing',
       checksum: 'd'.repeat(64),
     };
 
-    const hashFragment = encodeFullState(state, 2);
+    const hashFragment = encodeFullState(state, state.player2.id);
 
     // Should be a hash fragment
     expect(hashFragment).toMatch(/^#s=/);
@@ -95,17 +97,17 @@ describe('decodeFullState', () => {
       board: ['X', 'O', 'X', null, null, null, null, null, null] as Board,
       currentTurn: 3,
       currentPlayer: 2,
-      player1Name: 'Alice',
-      player2Name: 'Bob',
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: 'Bob' },
       status: 'playing',
       checksum: 'e'.repeat(64),
     };
 
-    const encoded = encodeFullState(original, 1);
-    const { state: decoded, targetPlayer } = decodeFullState(encoded);
+    const encoded = encodeFullState(original, original.player1.id);
+    const { state: decoded, targetPlayerId } = decodeFullState(encoded);
 
     expect(decoded).toEqual(original);
-    expect(targetPlayer).toBe(1);
+    expect(targetPlayerId).toBe(original.player1.id);
   });
 
   it('should decode and extract targetPlayer=1', () => {
@@ -114,17 +116,17 @@ describe('decodeFullState', () => {
       board: ['X', null, null, null, 'O', null, null, null, null] as Board,
       currentTurn: 2,
       currentPlayer: 1,
-      player1Name: 'Player1',
-      player2Name: 'Player2',
+      player1: { id: crypto.randomUUID(), name: 'Player1' },
+      player2: { id: crypto.randomUUID(), name: 'Player2' },
       status: 'playing',
       checksum: 'f'.repeat(64),
     };
 
-    const hash = encodeFullState(state, 1);
-    const { state: decoded, targetPlayer } = decodeFullState(hash);
+    const hash = encodeFullState(state, state.player1.id);
+    const { state: decoded, targetPlayerId } = decodeFullState(hash);
 
     expect(decoded).toEqual(state);
-    expect(targetPlayer).toBe(1);
+    expect(targetPlayerId).toBe(state.player1.id);
   });
 
   it('should decode and extract targetPlayer=2', () => {
@@ -133,17 +135,17 @@ describe('decodeFullState', () => {
       board: ['X', 'O', null, 'X', null, null, null, null, null] as Board,
       currentTurn: 3,
       currentPlayer: 1,
-      player1Name: 'Player1',
-      player2Name: 'Player2',
+      player1: { id: crypto.randomUUID(), name: 'Player1' },
+      player2: { id: crypto.randomUUID(), name: 'Player2' },
       status: 'playing',
       checksum: 'g'.repeat(64),
     };
 
-    const hash = encodeFullState(state, 2);
-    const { state: decoded, targetPlayer } = decodeFullState(hash);
+    const hash = encodeFullState(state, state.player2.id);
+    const { state: decoded, targetPlayerId } = decodeFullState(hash);
 
     expect(decoded).toEqual(state);
-    expect(targetPlayer).toBe(2);
+    expect(targetPlayerId).toBe(state.player2.id);
   });
 
   it('should handle game with empty player2Name', () => {
@@ -152,17 +154,17 @@ describe('decodeFullState', () => {
       board: Array(9).fill(null) as Board,
       currentTurn: 0,
       currentPlayer: 1,
-      player1Name: 'Alice',
-      player2Name: '', // Empty until Player 2 joins
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: '' }, // Empty until Player 2 joins
       status: 'playing',
       checksum: 'h'.repeat(64),
     };
 
-    const hash = encodeFullState(state, 2);
-    const { state: decoded, targetPlayer } = decodeFullState(hash);
+    const hash = encodeFullState(state, state.player2.id);
+    const { state: decoded, targetPlayerId } = decodeFullState(hash);
 
-    expect(decoded.player2Name).toBe('');
-    expect(targetPlayer).toBe(2);
+    expect(decoded.player2.name).toBe('');
+    expect(targetPlayerId).toBe(state.player2.id);
   });
 
   it('should handle game in progress with multiple moves', () => {
@@ -171,13 +173,13 @@ describe('decodeFullState', () => {
       board: ['X', 'O', 'X', 'O', 'X', null, null, null, null] as Board,
       currentTurn: 5,
       currentPlayer: 2,
-      player1Name: 'Alice',
-      player2Name: 'Bob',
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: 'Bob' },
       status: 'playing',
       checksum: 'i'.repeat(64),
     };
 
-    const encoded = encodeFullState(state, 2);
+    const encoded = encodeFullState(state, state.player2.id);
     const { state: decoded } = decodeFullState(encoded);
 
     expect(decoded.board).toEqual(state.board);
@@ -191,13 +193,13 @@ describe('decodeFullState', () => {
       board: ['X', 'X', 'X', 'O', 'O', null, null, null, null] as Board,
       currentTurn: 5,
       currentPlayer: 2,
-      player1Name: 'Alice',
-      player2Name: 'Bob',
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: 'Bob' },
       status: 'player1_wins',
       checksum: 'j'.repeat(64),
     };
 
-    const encoded = encodeFullState(state, 2);
+    const encoded = encodeFullState(state, state.player2.id);
     const { state: decoded } = decodeFullState(encoded);
 
     expect(decoded.status).toBe('player1_wins');
@@ -210,13 +212,13 @@ describe('decodeFullState', () => {
       board: ['X', 'O', 'X', 'X', 'X', 'O', 'O', 'X', 'O'] as Board,
       currentTurn: 9,
       currentPlayer: 1,
-      player1Name: 'Alice',
-      player2Name: 'Bob',
+      player1: { id: crypto.randomUUID(), name: 'Alice' },
+      player2: { id: crypto.randomUUID(), name: 'Bob' },
       status: 'draw',
       checksum: 'k'.repeat(64),
     };
 
-    const encoded = encodeFullState(state, 1);
+    const encoded = encodeFullState(state, state.player1.id);
     const { state: decoded } = decodeFullState(encoded);
 
     expect(decoded.status).toBe('draw');
