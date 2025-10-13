@@ -4,15 +4,16 @@ This template provides the standard structure for documenting game states in the
 
 ## Overview
 
-Every correspondence game should have **separate state diagrams** for:
-1. **Hot-Seat Mode** - Both players on same device
-2. **URL Mode** - Players on different devices
+Every correspondence game should use a **unified flow** with **mode-specific UI differences**.
 
-**Why separate diagrams?**
-- Different flows and complexity
-- Easier to understand each mode independently
-- Clearer documentation for developers
-- Better for debugging specific mode issues
+**Key Principle:** Hot-Seat and URL modes share the same state flow, but display different UI elements in certain states.
+
+**Why Unified Flow?**
+- ✅ Simpler architecture - one flow to maintain
+- ✅ Shared code between modes
+- ✅ Easier to understand and debug
+- ✅ Consistent player experience
+- ✅ Mode differences are just UI, not logic
 
 ---
 
@@ -25,509 +26,630 @@ Your `STATE_DIAGRAMS.md` file should have this structure:
 
 Brief description of the game.
 
-## Mode Selection
+## Unified Game Flow
 
-[Simple diagram showing how user chooses mode]
+[Single Mermaid diagram showing complete flow]
 
----
+## State Details
 
-## Hot-Seat Mode Flow
+[Documentation for each state with UI differences noted]
 
-[Complete diagram for hot-seat mode]
+## UI Differences Between Modes
 
-### Hot-Seat Mode States
-
-[Detailed documentation of each state]
-
----
-
-## URL Mode Flow
-
-[Complete diagram for URL mode]
-
-### URL Mode States
-
-[Detailed documentation of each state]
-
----
-
-## Common Elements
-
-[Shared components between modes]
-
----
+[Table showing mode-specific UI elements]
 
 ## Testing Checklist
 
-[Mode-specific test scenarios]
+[Test scenarios for both modes]
 ```
 
 ---
 
-## Mode Selection Diagram
-
-**Purpose:** Show how users enter each mode from the main menu.
+## Unified Flow Diagram Template
 
 ```mermaid
 stateDiagram-v2
-    [*] --> MainMenu
-    MainMenu --> HotSeatMode: Click "Hot-Seat Mode"
-    MainMenu --> URLMode: Click "URL Mode"
-```
+    [*] --> Player1Name: App loads
 
-**Keep this simple** - just show the entry points.
+    Player1Name --> ModeSelection: Submit name
 
----
+    ModeSelection --> PreGame: Choose mode
 
-## Hot-Seat Mode Diagram Template
+    PreGame --> MyTurn: Start Game
 
-**Purpose:** Complete flow for local multiplayer on one device.
+    MyTurn --> MoveSelected: Select move
 
-### Template
+    MoveSelected --> MoveSelected: Change selection
+    MoveSelected --> MyTurn: Deselect
+    MoveSelected --> Handoff: Confirm move
 
-```mermaid
-stateDiagram-v2
-    [*] --> Player1Name
+    Handoff --> Player2NamePrompt: First handoff & P2 not set
+    Player2NamePrompt --> TheirTurn: P2 enters name
 
-    Player1Name --> Player2Name: Submit name
-    Player2Name --> PreGame: Submit name
+    Handoff --> TheirTurn: P2 already set
 
-    PreGame --> Playing: Start Game
+    TheirTurn --> MyTurn: Player ready
 
-    Playing --> Handoff: Make move (game continues)
-    Handoff --> Playing: Click "I'm Ready"
-
-    Playing --> GameOver: Win/Draw
+    MyTurn --> GameOver: Win/Draw
 
     GameOver --> PreGame: Play Again
     GameOver --> [*]: Main Menu
-
-    PreGame --> [*]: Main Menu
 ```
-
-### Key Characteristics
-
-**Hot-Seat Mode MUST have:**
-- ✅ Sequential name collection (Player 1 → Player 2)
-- ✅ Handoff screen between turns (prevent cheating)
-- ✅ Both player names stored separately (`player1-name`, `player2-name`)
-- ✅ Pre-game screen showing both names
-- ✅ NO URL generation/sharing
-- ✅ NO localStorage warnings
-
-**States:**
-1. **Player1Name** - Collect first player's name
-2. **Player2Name** - Collect second player's name
-3. **PreGame** - Show both names, ready to start
-4. **Playing** - Active gameplay
-5. **Handoff** - Pass device to other player
-6. **GameOver** - Show results
 
 ---
 
-## URL Mode Diagram Template
+## State Details
 
-**Purpose:** Complete flow for remote play via URL sharing.
+### State: Player1Name
 
-### Template
+**Condition**: `player1Name === null` (app first loads)
 
-```mermaid
-stateDiagram-v2
-    [*] --> InitialLoad
-
-    InitialLoad --> Player1Setup: No URL (new game)
-    InitialLoad --> LoadFromURL: URL present
-
-    state Player1Setup {
-        [*] --> P1Name
-        P1Name --> P1PreGame: Submit name
-        P1PreGame --> P1FirstMove: Start game
-    }
-
-    state LoadFromURL {
-        [*] --> ParseURL
-        ParseURL --> DeterminePlayer: Valid URL
-        ParseURL --> Error: Invalid URL
-
-        DeterminePlayer --> PlayerXName: No saved name
-        PlayerXName --> UpdatedPlaying: Submit name
-
-        DeterminePlayer --> UpdatedPlaying: Has saved name
-    }
-
-    P1FirstMove --> ShareURL: Generate URL
-    ShareURL --> WaitingForP2: Show share section
-
-    WaitingForP2 --> UpdatedPlaying: P2 loads URL
-
-    UpdatedPlaying --> MyTurn: My turn
-    UpdatedPlaying --> WaitingForThem: Their turn
-
-    MyTurn --> GenerateURL: Make move
-    GenerateURL --> WaitingForThem: Show updated URL
-
-    WaitingForThem --> MyTurn: They make move
-
-    MyTurn --> GameOver: Win/Draw
-    WaitingForThem --> GameOver: Win/Draw
-
-    GameOver --> Player1Setup: Play Again
-    GameOver --> [*]: Main Menu
-
-    Error --> [*]: Main Menu
-```
-
-### Key Characteristics
-
-**URL Mode MUST have:**
-- ✅ Single player identity (`my-name`, not player1/player2)
-- ✅ Player ID system (persistent UUID)
-- ✅ URL generation after each move
-- ✅ Share URL interface
-- ✅ "Your turn" vs "Waiting" states
-- ✅ localStorage warning on name entry
-- ✅ First-time join vs returning player detection
-- ✅ localStorage cleared error handling
-- ✅ Full state encoding (turn 1) vs delta encoding (turn 2+)
-
-**States:**
-1. **InitialLoad** - Determine if new game or loading URL
-2. **Player1Setup** - First player creates game
-   - P1Name - Collect name (with warning)
-   - P1PreGame - Ready to start
-   - P1FirstMove - Make first move
-3. **LoadFromURL** - Loading shared game
-   - ParseURL - Decode and validate
-   - DeterminePlayer - Figure out who I am
-   - PlayerXName - First-time join (name prompt)
-4. **ShareURL** - Display URL for sharing
-5. **WaitingForP2** - Player 1 waiting for Player 2 to join
-6. **UpdatedPlaying** - Active game state
-7. **MyTurn** - I can make a move
-8. **WaitingForThem** - Waiting for opponent
-9. **GenerateURL** - Creating share link after move
-10. **GameOver** - Show results
-11. **Error** - Invalid URL or localStorage cleared
-
----
-
-## State Documentation Format
-
-For **each state**, document:
-
-### State: [StateName]
-
-**Condition**: The React state conditions that trigger this state
-```typescript
-gameMode === 'hotseat' && player1Name === null
-```
+**Purpose**: Collect player 1's name
 
 **Display**:
-- List exact UI elements shown
-- Headers, buttons, forms, messages
-- What's clickable, what's disabled
-
-**Transitions**:
-- Event → Action → Next State
-- Be specific about state changes
-
-**Example:**
-
-### State: HSPlayer1Name
-
-**Condition**: `gameMode === 'hotseat' && player1Name === null`
-
-**Display**:
-- Header: "🎯 Game - Hot-Seat Mode"
-- Sub-header: "Player 1 (X)"
-- Form with label: "Enter your name:"
-- Input field: `id="player1Name"`, autoFocus, required, maxLength={20}
+- Header: "[Game Title]"
+- Form label: "Enter your name:"
+- Input field (pre-filled from `localStorage['my-name']` if exists)
 - Button: "Continue"
-- NO localStorage warning
+
+**Both Modes**: Same UI (no mode chosen yet)
 
 **Transitions**:
-- Submit form →
-  - Store in `localStorage['correspondence-games:player1-name']`
-  - Set `player1Name` in React state
-  - Go to `HSPlayer2Name`
+- Submit form → Save name to `localStorage['my-name']`, go to `ModeSelection`
+
+**Implementation Notes**:
+- Input should be `autoFocus`, `required`, `maxLength={20}`
+- Use framework form classes (`.cg-form`, `.cg-form-input`)
 
 ---
 
-## Critical Differences Between Modes
+### State: ModeSelection
 
-### Hot-Seat Mode
+**Condition**: `player1Name !== null && gameMode === null`
 
-| Aspect | Implementation |
-|--------|---------------|
-| **Player Identity** | Two separate identities (`player1-name`, `player2-name`) |
-| **Turn Management** | Handoff screen between turns |
-| **State Persistence** | localStorage only |
-| **Name Collection** | Sequential (P1 → P2) |
-| **Warnings** | None needed |
-| **Game State** | Stored locally, no sharing |
-
-### URL Mode
-
-| Aspect | Implementation |
-|--------|---------------|
-| **Player Identity** | Single identity (`my-name`), role determined by game |
-| **Turn Management** | "Your turn" vs "Waiting" messages, no handoff |
-| **State Persistence** | localStorage + URL encoding |
-| **Name Collection** | Individual (only my name) |
-| **Warnings** | ⚠️ "Keep tab open, don't clear cache" |
-| **Game State** | Encoded in URLs for sharing |
-
----
-
-## Common Elements
-
-Document shared components that appear in both modes:
-
-### Game Board/Play Area
+**Purpose**: Let player choose game mode
 
 **Display**:
-- [Describe game-specific board/interface]
-- Current player indicator
-- Move history (if applicable)
-- Status messages
+- Header: "Hi [name]! Choose mode:"
+- Two clickable cards/buttons:
+  - **Hot-Seat Mode**
+    - Description: "Play with someone on this device"
+  - **URL Mode**
+    - Description: "Share game via URL to play remotely"
 
-### Game Over Screen
+**Both Modes**: Same UI (choosing mode)
+
+**Transitions**:
+- Click Hot-Seat → Set `gameMode = 'hotseat'`, go to `PreGame`
+- Click URL Mode → Set `gameMode = 'url'`, go to `PreGame`
+
+**Implementation Notes**:
+- No pre-selection (user must choose)
+- Cards should be large, easy to tap
+- No warnings on this screen
+
+---
+
+### State: PreGame
+
+**Condition**: `gameMode !== null && gameState === null`
+
+**Purpose**: Ready to start, show game info
 
 **Display** (both modes):
-- Winner announcement or draw message
-- Final game state
-- "Play Again" button
-- "Main Menu" button
+- Header: "[Game Title]"
+- Sub-header: "[Mode Name] Mode"
+- "You: [name]"
+- Button: "Start Game"
+- Button: "Main Menu"
 
-**Display** (URL mode only):
-- NO share URL section when game is over
+**Mode Difference**:
+- **URL Mode Only**: Show warning message
+  - "⚠️ Don't clear browser memory during game"
 
-### Main Menu
+**Transitions**:
+- Click "Start Game" → Create initial game state, go to `MyTurn`
+- Click "Main Menu" → Reset, go to `Player1Name`
 
-**Condition**: `gameMode === null`
+**Implementation Notes**:
+- Only show P1's name (P2 not collected yet)
+- Warning only visible in URL mode
+
+---
+
+### State: MyTurn
+
+**Condition**: `gameState !== null && currentPlayer === myPlayerNumber && !moveSelected`
+
+**Purpose**: Active player's turn, waiting for move selection
 
 **Display**:
-- Game title
-- "Play Hot-Seat Mode" button
-- "Play URL Mode" button
+- Header: "[Game Title]"
+- "You: [name]"
+- Game board (interactive)
+- Status: "Your turn - select a move"
+
+**Both Modes**: Same UI
+
+**Transitions**:
+- Click cell → Set `selectedCell`, go to `MoveSelected`
+- Game ends (external event) → go to `GameOver`
+
+**Implementation Notes**:
+- Board cells are clickable
+- Current game state displayed
+- No confirm button yet
+
+---
+
+### State: MoveSelected
+
+**Condition**: `selectedCell !== null`
+
+**Purpose**: Player selected a move, can confirm or change
+
+**Display**:
+- Header: "[Game Title]"
+- "You: [name]"
+- Game board (interactive)
+- Selected cell highlighted/previewed
+- Confirm button appears
+
+**Mode Difference** (button text only):
+- **Hot-Seat**: "Confirm & Hand Off"
+- **URL Mode**: "Confirm & Generate URL"
+
+**Transitions**:
+- Click different cell → Change `selectedCell`, stay in `MoveSelected`
+- Click same cell → Clear `selectedCell`, go to `MyTurn`
+- Click confirm button → Apply move, go to `Handoff`
+
+**Implementation Notes**:
+- Selected cell should have distinct visual style
+- Can show preview of X/O/piece in the cell
+- Confirm button only appears when cell selected
+- NO URL generation until confirmed
+
+---
+
+### State: Handoff
+
+**Condition**: Move just confirmed, need to pass turn
+
+**Purpose**: Show move confirmation and prepare for next player
+
+**Display** (common):
+- Shows the move that was just made
+- Shows whose turn is next
+
+**Mode Differences**:
+
+**Hot-Seat Mode**:
+- Header: "📱 Pass to [Player 2 name or 'Player 2']"
+- Message: "[Player 2], it's your turn!"
+- Shows last move made
+- Automatically proceeds after brief moment OR needs click
+
+**URL Mode**:
+- Header: "📤 Share this URL"
+- Shows last move made
+- URL display (just generated)
+- "Copy URL" button
+- Message: "Send to [Player 2 name or 'Player 2']"
+- Automatically proceeds to `TheirTurn`
+
+**Transitions**:
+- If `player2Name === null` → go to `Player2NamePrompt`
+- If `player2Name !== null` → go to `TheirTurn`
+
+**Implementation Notes**:
+- **URL Mode**: URL generated here after move confirmed
+- **Hot-Seat**: Brief pause or button click to proceed
+- First handoff triggers P2 name prompt
+
+---
+
+### State: Player2NamePrompt
+
+**Condition**: First handoff and `player2Name === null`
+
+**Purpose**: Collect player 2's name on their first turn
+
+**Display**:
+- Header: "[Game Title]"
+- Sub-header: "Player 2, enter your name:"
+- Form with input field
+- Button: "Continue"
+
+**Mode Difference**:
+- **Hot-Seat**: No warning
+- **URL Mode**: Show warning
+  - "⚠️ Don't clear browser memory during game"
+
+**Transitions**:
+- Submit form → Save name, go to `TheirTurn`
+
+**Implementation Notes**:
+- Same form style as Player1Name
+- Use framework form classes
+- **Hot-Seat**: Store in `localStorage['player2-name']`
+- **URL Mode**: Store in `localStorage['my-name']` (it's their game now)
+
+---
+
+### State: TheirTurn
+
+**Condition**: `currentPlayer !== myPlayerNumber` (waiting for other player)
+
+**Purpose**: Waiting for opponent to make their move
+
+**Display** (common):
+- Header: "[Game Title]"
+- "You: [name]"
+- Game board (read-only, shows current state)
+- Status message
+
+**Mode Differences**:
+
+**Hot-Seat Mode**:
+- Message: "It's [Player 2]'s turn"
+- Button: "I'm Ready" (P2 clicks when they have device)
+
+**URL Mode**:
+- Message: "⏳ Waiting for [Player 2]..."
+- No button (passive waiting)
+- Updates when URL is loaded
+
+**Transitions**:
+- **Hot-Seat**: Click "I'm Ready" → go to `MyTurn`
+- **URL Mode**: Load URL with new move → go to `MyTurn`
+- Game ends (external event) → go to `GameOver`
+
+**Implementation Notes**:
+- Board is not interactive
+- Shows opponent's name if available
+- URL mode: no user action needed
+
+---
+
+### State: GameOver
+
+**Condition**: `status !== 'playing'` (win or draw)
+
+**Purpose**: Show final results
+
+**Display**:
+- Header: "[Game Title]"
+- Game board showing final state
+- Result message:
+  - "🎉 [Winner name] Wins!"
+  - "🤝 It's a Draw!"
+- Winning pattern (if applicable)
+- Button: "Play Again"
+- Button: "Main Menu"
+
+**Both Modes**: Same UI
+
+**Mode Difference**:
+- **URL Mode**: NO "Share URL" section (game is over)
+
+**Transitions**:
+- Click "Play Again" → Clear game state, go to `PreGame`
+- Click "Main Menu" → Reset everything, go to `Player1Name`
+
+**Implementation Notes**:
+- Highlight winning cells/pattern if applicable
+- Use game state player names (not React state) for accuracy
+
+---
+
+## UI Differences Summary
+
+| State | Hot-Seat UI | URL Mode UI |
+|-------|------------|-------------|
+| **Player1Name** | Standard form | Standard form (same) |
+| **ModeSelection** | Option card | Option card (same) |
+| **PreGame** | No warning | ⚠️ Browser memory warning |
+| **MyTurn** | Same board | Same board (identical) |
+| **MoveSelected** | "Confirm & Hand Off" | "Confirm & Generate URL" |
+| **Handoff** | "Pass to Player 2" message | Share URL section + Copy button |
+| **Player2NamePrompt** | No warning | ⚠️ Browser memory warning |
+| **TheirTurn** | "I'm Ready" button | "⏳ Waiting..." (passive) |
+| **GameOver** | Same | Same (no URL section) |
 
 ---
 
 ## State Variables Reference
 
-Document all React state variables:
-
 ### React State
 
 ```typescript
-gameMode: 'hotseat' | 'url' | null
-turnPhase: 'playing' | 'handoff'  // Hot-seat only
+// Player identity
 player1Name: string | null          // React state for UI
-player2Name: string | null          // React state for UI
-gameState: GameState | null         // Persisted game state
-shareUrl: string                    // URL mode only
-myPlayerNumber: 1 | 2 | null       // URL mode only
-myPlayerId: string                  // URL mode only
+player2Name: string | null          // React state for UI (hot-seat) or null (URL)
+myPlayerNumber: 1 | 2 | null       // URL mode: which player am I
+myPlayerId: string                  // URL mode: persistent UUID
+
+// Game state
+gameMode: 'hotseat' | 'url' | null
+gameState: GameState | null
+selectedCell: number | null         // Move selection state
+shareUrl: string                    // URL mode: generated share link
 ```
 
 ### Game State (Persisted)
 
 ```typescript
 {
-  gameId: string
-  // Game-specific fields
-  currentTurn: number
-  currentPlayer: 1 | 2
+  gameId: string                    // UUID
+  // Game-specific fields (board, pieces, etc.)
+  currentTurn: number               // Increments each move
+  currentPlayer: 1 | 2              // Whose turn
   player1: { id: string, name: string }
   player2: { id: string, name: string }
   status: 'playing' | 'player1_wins' | 'player2_wins' | 'draw'
-  checksum: string
+  checksum: string                  // For validation
 }
 ```
 
 ### localStorage Keys
 
-**Hot-Seat Mode:**
-- `correspondence-games:player1-name`
-- `correspondence-games:player2-name`
-- `correspondence-games:my-player-id`
-- `[game-name]:game-state`
+**Both Modes:**
+- `correspondence-games:my-name` - Current player's name
+- `correspondence-games:my-player-id` - Persistent UUID
+- `[game-name]:game-state` - Serialized game state
 
-**URL Mode:**
-- `correspondence-games:my-name`
-- `correspondence-games:my-player-id`
-- `[game-name]:game-state`
+**Hot-Seat Mode Only:**
+- `correspondence-games:player1-name` - Player 1's specific name
+- `correspondence-games:player2-name` - Player 2's specific name
+
+---
+
+## Critical Implementation Patterns
+
+### Move Selection & Confirmation
+
+```typescript
+const [selectedCell, setSelectedCell] = useState<number | null>(null);
+
+const handleCellClick = (index: number) => {
+  // Can't select if not my turn
+  if (gameState.currentPlayer !== myPlayerNumber) return;
+
+  // Toggle selection
+  if (selectedCell === index) {
+    setSelectedCell(null); // Deselect
+  } else {
+    setSelectedCell(index); // Select or change
+  }
+};
+
+const handleConfirm = async () => {
+  if (selectedCell === null) return;
+
+  // Apply move to game state
+  const newGameState = applyMove(gameState, selectedCell);
+
+  // Generate URL only in URL mode, only after confirmation
+  if (gameMode === 'url') {
+    const url = await generateURL(newGameState);
+    setShareUrl(url);
+  }
+
+  // Clear selection and update game
+  setSelectedCell(null);
+  setGameState(newGameState);
+  // Transition to handoff
+};
+```
+
+### P2 Name Collection Timing
+
+```typescript
+// Check on handoff
+if (player2Name === null && gameState.currentTurn === 1) {
+  // Show Player2NamePrompt
+  return <Player2NameForm />;
+}
+```
+
+### Mode-Specific UI
+
+```typescript
+// Confirm button text
+const confirmText = gameMode === 'hotseat'
+  ? 'Confirm & Hand Off'
+  : 'Confirm & Generate URL';
+
+// Handoff UI
+if (gameMode === 'hotseat') {
+  return <PassDeviceScreen />;
+} else {
+  return <ShareURLScreen url={shareUrl} />;
+}
+```
 
 ---
 
 ## Common Pitfalls
 
-Document common mistakes and how to avoid them:
-
-### ❌ Confusing React State with Game State
+### ❌ Generating URL Too Early
 
 **Wrong:**
 ```typescript
-// Using React state for game logic
-if (player1Name === 'Alice') { /* game logic */ }
+// URL generates on cell click
+const handleCellClick = (index: number) => {
+  setSelectedCell(index);
+  const url = generateURL(gameState); // TOO EARLY!
+  setShareUrl(url);
+};
 ```
 
 **Correct:**
 ```typescript
-// Using game state for game logic
-if (gameState.player1.name === 'Alice') { /* game logic */ }
+// URL generates only on confirm
+const handleConfirm = async () => {
+  const newState = applyMove(gameState, selectedCell);
+  if (gameMode === 'url') {
+    const url = await generateURL(newState); // After move applied
+    setShareUrl(url);
+  }
+};
 ```
 
-**Rule:** React state is for UI, game state is for game logic.
+### ❌ Collecting Both Names Upfront
 
-### ❌ Wrong localStorage Detection (URL Mode)
+**Wrong:** Player 1 name → Player 2 name → Mode selection → PreGame
 
-**Wrong:**
-```typescript
-if (gameState.currentTurn > 0) {
-  // Show localStorage cleared error
-}
-```
-This triggers error for Player 2's first join!
+**Correct:** Player 1 name → Mode selection → PreGame → Play → P2 name on first handoff
 
-**Correct:**
-```typescript
-const playerNameInGameState = myPlayerNumber === 1
-  ? gameState.player1.name
-  : gameState.player2.name;
+### ❌ Different Flows for Each Mode
 
-if (playerNameInGameState && playerNameInGameState.trim() !== '') {
-  // Player joined before but localStorage gone - ERROR
-} else {
-  // First time joining - show name prompt
-}
-```
+**Wrong:** Separate state machines for hot-seat vs URL
 
-### ❌ Using Wrong localStorage Keys
+**Correct:** Single unified flow with UI variations
 
-**Hot-Seat:** `player1-name` and `player2-name` (two separate people)
-**URL:** `my-name` (single person, multiple games)
+### ❌ Wrong localStorage Keys
 
-Don't mix them up!
+**Hot-Seat:** Both players use separate keys (`player1-name`, `player2-name`)
+**URL:** Each player uses `my-name` (same person across games)
 
 ---
 
-## Testing Checklist Template
+## Testing Checklist
 
-Provide mode-specific test scenarios:
+### Both Modes - Core Flow
 
-### Hot-Seat Mode Tests
+- [ ] Enter name → continues to mode selection
+- [ ] Pre-filled name from localStorage works
+- [ ] Can edit pre-filled name
+- [ ] Choose mode → goes to pre-game
+- [ ] Pre-game shows correct info
+- [ ] Start game → board appears
+- [ ] Can select a cell
+- [ ] Selected cell is highlighted
+- [ ] Can change selection by clicking different cell
+- [ ] Can deselect by clicking same cell
+- [ ] Confirm button appears when cell selected
+- [ ] Confirm button text matches mode
+- [ ] Move applies after confirm
+- [ ] P2 name prompt appears on first handoff
+- [ ] Can continue game after P2 enters name
+- [ ] Win condition detected correctly
+- [ ] Draw condition detected correctly
+- [ ] Game over shows correct result
+- [ ] Play Again returns to pre-game
+- [ ] Main Menu resets everything
 
-- [ ] Main menu → Hot-seat → Player 1 name entry
-- [ ] Player 1 name → Player 2 name entry
-- [ ] Player 2 name → Pre-game (both names shown)
-- [ ] Pre-game → Start game → Playing state
-- [ ] Make move → Handoff screen appears
-- [ ] Handoff "I'm Ready" → Back to playing
-- [ ] Game continues alternating turns
-- [ ] Win condition → Game over screen
-- [ ] Draw condition → Game over screen
-- [ ] Game over → Play Again → Pre-game
-- [ ] Any state → Main Menu → Clears game
+### Hot-Seat Mode Specific
 
-### URL Mode Tests
+- [ ] No warnings shown
+- [ ] Handoff shows "Pass to Player 2" message
+- [ ] "I'm Ready" button works
+- [ ] Alternates between players correctly
+- [ ] Both player names persist in localStorage
 
-- [ ] Main menu → URL mode → Player 1 name (with warning)
-- [ ] Player 1 name → Pre-game (only P1 shown)
-- [ ] Pre-game → Start game → Playing (turn 0)
-- [ ] Make first move → Share URL appears
+### URL Mode Specific
+
+- [ ] Warning shown in pre-game
+- [ ] Warning shown in P2 name prompt
+- [ ] No URL generated until move confirmed
+- [ ] URL generated after confirm
 - [ ] Copy URL button works
-- [ ] Paste URL in new browser → Player 2 name prompt
-- [ ] Player 2 enters name → Playing state (turn 1)
-- [ ] Player 2 makes move → Share URL with P1
-- [ ] P1 loads delta URL → State updates correctly
-- [ ] "Your turn" vs "Waiting" displays correctly
-- [ ] Role switching: Ryan starts Game A as P1, Game B as P2
-- [ ] localStorage cleared mid-game → Error shown
-- [ ] Invalid URL → Error shown
-- [ ] Game over → Share URL hidden
+- [ ] Share URL section displays correctly
+- [ ] Can load URL in new browser
+- [ ] Delta encoding works for subsequent moves
+- [ ] "Waiting..." message shows when not your turn
+- [ ] localStorage cleared → error shown
+- [ ] Invalid URL → error shown
+- [ ] Player ID role switching works
+
+### Edge Cases
+
+- [ ] Loading URL before P2 joins (turn 1)
+- [ ] Loading URL after P2 joined (turn 2+)
+- [ ] Changing move after clicking confirm (should not work)
+- [ ] Refreshing page mid-game
+- [ ] Back button navigation
+- [ ] Mobile responsive on all screens
 
 ---
 
-## Implementation Notes
+## Visual Design Notes
 
-### Mermaid Syntax Tips
+### Move Selection Highlight
 
-**State names:**
-- Use descriptive names (not S1, S2, S3)
-- Prefix with mode: `HS` for hot-seat, `URL` for URL mode
-- Example: `HSPlayer1Name`, `URLMyTurn`
+Recommended styling:
+```css
+.cell.selected {
+  border: 3px solid var(--cg-color-primary);
+  background: var(--cg-color-cell-hover);
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+}
 
-**Composite states:**
-```mermaid
-state CompositeState {
-    [*] --> SubState1
-    SubState1 --> SubState2
+@media (prefers-color-scheme: dark) {
+  .cell.selected {
+    border-color: var(--cg-color-primary-dark);
+    background: var(--cg-color-cell-hover-dark);
+    box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+  }
 }
 ```
 
-**Transitions:**
-```mermaid
-State1 --> State2: Event description
+### Confirm Button
+
+Should be prominent:
+```css
+.confirm-button {
+  display: block;
+  margin: 20px auto;
+  padding: 15px 30px;
+  font-size: 18px;
+  /* Use framework button classes */
+}
 ```
 
-### Documentation Tips
+---
 
-1. **Be specific:** "Button: 'Continue'" not "A button"
-2. **Include examples:** Show actual code conditions
-3. **Cross-reference:** Link to related docs
-4. **Keep updated:** Sync with code changes
-5. **Test it:** Verify diagrams match actual behavior
+## Example Implementation
+
+See these games for reference:
+- **Tic-Tac-Toe:** `games/tic-tac-toe/src/App.tsx` (being updated to this pattern)
+- **Emoji Chain:** `games/emoji-chain/src/App.tsx` (being updated to this pattern)
 
 ---
 
-## Example Games
+## Migration Guide
 
-Reference these for complete implementations:
+If updating an existing game with separate flows:
 
-- **Tic-Tac-Toe:** `games/tic-tac-toe/STATE_DIAGRAMS.md`
-  - Shows nested state approach (being updated to separate)
-  - Complete state documentation
-  - Testing checklist
-
-- **Emoji Chain:** `packages/core/EMOJI_GAME_STATE_DIAGRAMS.md`
-  - Shows URL-only game (no hot-seat)
-  - Delta encoding flow
-  - Security validation
-
----
-
-## When to Update
-
-Update your state diagrams when:
-- ✅ Adding new states
-- ✅ Changing transitions
-- ✅ Modifying UI elements
-- ✅ Fixing bugs related to state management
-- ✅ Adding new game modes
-
-**Keep diagrams in sync with code!**
+1. **Identify shared states** - Most states are probably already the same
+2. **Extract UI differences** - Note where modes differ
+3. **Consolidate logic** - Use `gameMode` checks for UI only
+4. **Update state diagram** - Use unified template
+5. **Test both modes** - Ensure nothing broke
+6. **Update documentation** - Sync STATE_DIAGRAMS.md
 
 ---
 
 ## Template Checklist
 
-When creating state diagrams for a new game:
+When creating/updating state diagrams:
 
-- [ ] Created `STATE_DIAGRAMS.md` in game directory
-- [ ] Included mode selection diagram
-- [ ] Created separate hot-seat mode diagram
-- [ ] Created separate URL mode diagram
-- [ ] Documented all states with conditions, display, transitions
-- [ ] Listed state variables (React + game state)
-- [ ] Listed localStorage keys for each mode
-- [ ] Documented common pitfalls for this game
+- [ ] Used unified flow diagram (not separate)
+- [ ] Documented all states with conditions
+- [ ] Noted UI differences for each state
+- [ ] Included move selection/confirmation states
+- [ ] P2 name collected on first handoff
+- [ ] Listed React state variables
+- [ ] Listed game state structure
+- [ ] Listed localStorage keys
+- [ ] Documented mode-specific UI elements
 - [ ] Created testing checklist
-- [ ] Verified diagrams match actual code behavior
-- [ ] Cross-referenced in game README
+- [ ] Verified diagram matches code
 
 ---
 
 **Last Updated:** October 2025
-**Version:** 1.0.0
-**Framework Version:** 1.1.0
+**Version:** 2.0.0
+**Framework Version:** 1.2.0
