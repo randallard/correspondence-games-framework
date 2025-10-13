@@ -1,0 +1,350 @@
+/**
+ * Correspondence Games Framework - Shared Styles
+ *
+ * This file provides consistent theming across all correspondence games.
+ * Import this file in your game's CSS to get standardized dark mode support.
+ *
+ * Usage:
+ *   @import '@correspondence-games/core/src/styles/correspondence-games.css';
+ *
+ * Features:
+ * - CSS custom properties for colors and spacing
+ * - Dark mode support via prefers-color-scheme
+ * - Standardized button styles
+ * - Form element styles
+ * - Utility classes
+ */
+
+/* ============================================
+   CSS Custom Properties (CSS Variables)
+   ============================================ */
+
+:root {
+  /* Tell the browser to support both light and dark color schemes */
+  color-scheme: light dark;
+
+  /* Neutral Colors */
+  --cg-color-text-primary: #333;
+  --cg-color-text-secondary: #666;
+  --cg-color-text-tertiary: #999;
+  --cg-color-bg-primary: #ffffff;
+  --cg-color-bg-secondary: #f8f9fa;
+  --cg-color-bg-tertiary: #f5f5f5;
+  --cg-color-border: #ddd;
+
+  /* Brand Colors */
+  --cg-color-primary: #007bff;
+  --cg-color-primary-hover: #0056b3;
+  --cg-color-primary-dark: #0d6efd;
+  --cg-color-primary-dark-hover: #0b5ed7;
+
+  --cg-color-success: #28a745;
+  --cg-color-success-hover: #218838;
+  --cg-color-success-dark: #198754;
+  --cg-color-success-dark-hover: #157347;
+
+  --cg-color-warning: #ffc107;
+  --cg-color-warning-bg: #fff3cd;
+  --cg-color-warning-border: #ffc107;
+  --cg-color-warning-dark-bg: #2d2416;
+  --cg-color-warning-dark-border: #b8860b;
+
+  --cg-color-secondary: #6c757d;
+  --cg-color-secondary-hover: #545b62;
+  --cg-color-secondary-dark-hover: #5a6268;
+
+  /* Game-specific Colors */
+  --cg-color-board-bg: #2c3e50;
+  --cg-color-board-bg-dark: #1a252f;
+  --cg-color-cell-bg: #ecf0f1;
+  --cg-color-cell-bg-dark: #2a2a2a;
+  --cg-color-cell-clickable: #ffffff;
+  --cg-color-cell-clickable-dark: #1e1e1e;
+  --cg-color-cell-hover: #e3f2fd;
+  --cg-color-cell-hover-dark: #1a3a52;
+  --cg-color-winning: #27ae60;
+  --cg-color-winning-light: #2ecc71;
+
+  /* Shadows */
+  --cg-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --cg-shadow-sm-dark: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --cg-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --cg-shadow-md-dark: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --cg-shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --cg-shadow-lg-dark: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+  /* Spacing */
+  --cg-spacing-xs: 5px;
+  --cg-spacing-sm: 10px;
+  --cg-spacing-md: 20px;
+  --cg-spacing-lg: 30px;
+  --cg-spacing-xl: 40px;
+
+  /* Border Radius */
+  --cg-radius-sm: 4px;
+  --cg-radius-md: 8px;
+  --cg-radius-lg: 12px;
+
+  /* Typography */
+  --cg-font-family: system-ui, -apple-system, sans-serif;
+  --cg-font-size-sm: 12px;
+  --cg-font-size-base: 16px;
+  --cg-font-size-lg: 18px;
+  --cg-font-size-xl: 24px;
+}
+
+/* Dark Mode Color Overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cg-color-text-primary: #e0e0e0;
+    --cg-color-text-secondary: #999;
+    --cg-color-text-tertiary: #666;
+    --cg-color-bg-primary: #1e1e1e;
+    --cg-color-bg-secondary: #2a2a2a;
+    --cg-color-bg-tertiary: #2a2a2a;
+    --cg-color-border: #444;
+  }
+}
+
+/* ============================================
+   Base Elements
+   ============================================ */
+
+.cg-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--cg-spacing-md);
+  font-family: var(--cg-font-family);
+}
+
+.cg-heading {
+  text-align: center;
+  color: var(--cg-color-text-primary);
+}
+
+.cg-text {
+  text-align: center;
+  color: var(--cg-color-text-secondary);
+  margin: var(--cg-spacing-sm) 0;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+.cg-button {
+  padding: 12px 24px;
+  font-size: var(--cg-font-size-base);
+  border: none;
+  border-radius: var(--cg-radius-md);
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s, transform 0.1s;
+  font-family: var(--cg-font-family);
+}
+
+.cg-button:active {
+  transform: scale(0.98);
+}
+
+/* Primary Button (Blue) */
+.cg-button-primary {
+  background: var(--cg-color-primary);
+  color: white;
+}
+
+.cg-button-primary:hover {
+  background: var(--cg-color-primary-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cg-button-primary {
+    background: var(--cg-color-primary-dark);
+    box-shadow: var(--cg-shadow-md-dark);
+  }
+
+  .cg-button-primary:hover {
+    background: var(--cg-color-primary-dark-hover);
+  }
+}
+
+/* Success Button (Green) */
+.cg-button-success {
+  background: var(--cg-color-success);
+  color: white;
+}
+
+.cg-button-success:hover {
+  background: var(--cg-color-success-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cg-button-success {
+    background: var(--cg-color-success-dark);
+    box-shadow: var(--cg-shadow-md-dark);
+  }
+
+  .cg-button-success:hover {
+    background: var(--cg-color-success-dark-hover);
+  }
+}
+
+/* Secondary Button (Gray) */
+.cg-button-secondary {
+  background: var(--cg-color-secondary);
+  color: white;
+}
+
+.cg-button-secondary:hover {
+  background: var(--cg-color-secondary-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cg-button-secondary {
+    box-shadow: var(--cg-shadow-sm-dark);
+  }
+
+  .cg-button-secondary:hover {
+    background: var(--cg-color-secondary-dark-hover);
+  }
+}
+
+/* Button Sizes */
+.cg-button-sm {
+  padding: 5px 10px;
+  font-size: var(--cg-font-size-sm);
+}
+
+.cg-button-lg {
+  padding: 15px 30px;
+  font-size: var(--cg-font-size-lg);
+}
+
+.cg-button-xl {
+  padding: 20px 40px;
+  font-size: var(--cg-font-size-xl);
+}
+
+/* ============================================
+   Forms
+   ============================================ */
+
+.cg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 400px;
+  margin: var(--cg-spacing-lg) auto;
+  padding: var(--cg-spacing-lg);
+  background: var(--cg-color-bg-secondary);
+  border-radius: var(--cg-radius-md);
+}
+
+.cg-form-label {
+  font-size: var(--cg-font-size-base);
+  color: var(--cg-color-text-primary);
+  text-align: left;
+}
+
+.cg-form-input {
+  padding: 12px;
+  font-size: var(--cg-font-size-base);
+  border: 1px solid var(--cg-color-border);
+  border-radius: var(--cg-radius-sm);
+  background: var(--cg-color-bg-primary);
+  color: var(--cg-color-text-primary);
+  font-family: var(--cg-font-family);
+}
+
+.cg-form-input:focus {
+  outline: 2px solid var(--cg-color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cg-form-input:focus {
+    outline-color: var(--cg-color-primary-dark);
+  }
+}
+
+/* ============================================
+   Warning/Share Sections
+   ============================================ */
+
+.cg-warning-section {
+  margin-top: var(--cg-spacing-lg);
+  padding: var(--cg-spacing-md);
+  background: var(--cg-color-warning-bg);
+  border-radius: var(--cg-radius-md);
+  border: 2px solid var(--cg-color-warning-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cg-warning-section {
+    background: var(--cg-color-warning-dark-bg);
+    border-color: var(--cg-color-warning-dark-border);
+  }
+}
+
+.cg-warning-section h3 {
+  color: var(--cg-color-text-primary);
+  margin-bottom: 15px;
+}
+
+/* URL Display */
+.cg-url-display {
+  word-break: break-all;
+  font-family: monospace;
+  font-size: var(--cg-font-size-sm);
+  background: var(--cg-color-bg-primary);
+  padding: var(--cg-spacing-sm);
+  border-radius: var(--cg-radius-sm);
+  margin-top: var(--cg-spacing-sm);
+  color: var(--cg-color-text-primary);
+  border: 1px solid var(--cg-color-border);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.cg-text-center {
+  text-align: center;
+}
+
+.cg-mb-sm { margin-bottom: var(--cg-spacing-sm); }
+.cg-mb-md { margin-bottom: var(--cg-spacing-md); }
+.cg-mb-lg { margin-bottom: var(--cg-spacing-lg); }
+
+.cg-mt-sm { margin-top: var(--cg-spacing-sm); }
+.cg-mt-md { margin-top: var(--cg-spacing-md); }
+.cg-mt-lg { margin-top: var(--cg-spacing-lg); }
+
+.cg-p-sm { padding: var(--cg-spacing-sm); }
+.cg-p-md { padding: var(--cg-spacing-md); }
+.cg-p-lg { padding: var(--cg-spacing-lg); }
+
+/* ============================================
+   Status Text Colors
+   ============================================ */
+
+.cg-status-primary {
+  color: var(--cg-color-primary);
+  font-weight: bold;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cg-status-primary {
+    color: #4a9eff;
+  }
+}
+
+.cg-status-success {
+  color: var(--cg-color-winning);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cg-status-success {
+    color: var(--cg-color-winning-light);
+  }
+}
